@@ -157,19 +157,17 @@ gcc -Os -s -o ISx-gcc.exe ISx.c inflate_tinfl.c miniz_tinfl.c
 cl /Os /MD /FeISx-vc.exe ISx.c inflate_tinfl.c miniz_tinfl.c
 */
 
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <locale.h>
 #include <sys/types.h>
+#include "defs.h"
 
 // PE file struct, 'WideChar <--> MultiByte'
-#if defined(_WIN32)
-    #include <windows.h>
-    #include <direct.h>
-    #include <tchar.h>
-    #include <mbctype.h>
+#if (defined(_WIN32) || defined(__CYGWIN__))
 int utf16_to_cs(const wchar_t* str_w, UINT cp_out, char** str_m)
 {
     const wchar_t* str_wn;
@@ -196,6 +194,8 @@ extern int inflate_f(char* f_r, char* f_w);
 
 /* **** */
 #define PREFER_BLOCK_SIZE (4096 * 64)// n * SECTOR_SIZE, for high efficiency
+
+
 
 /* **** */
 char* g_Ver = "0.3.2 #20180112";
@@ -341,7 +341,7 @@ void make_all_dir_created(char* path, size_t start)
     {
         *p = 0;
         p++;
-        _mkdir(path_new);// existing or new
+        mkdir(path_new);// existing or new
         strcpy(path_new, path);
     }
     //
@@ -885,10 +885,10 @@ uint32_t get_data_offset(FILE* fp)
 }
 
 /* **** */
-void help()
+void help(char** argv)
 {
     fprintf(stderr, "InstallShield file extractor v%s @YX Hao\n", g_Ver);
-    fprintf(stderr, "Usage: %s <InstallShield file>\n", __argv[0]);
+    fprintf(stderr, "Usage: %s <InstallShield file>\n", argv[0]);
 }
 
 /* **** */
@@ -921,7 +921,7 @@ int main(int argc, char** argv)
     //
     if(argc < 2)
     {
-        help();
+        help(argv);
         goto error;
     }
     //
@@ -934,7 +934,7 @@ int main(int argc, char** argv)
         goto error;
     }
     //
-    total_len = _filelength(fileno(fp));
+    total_len = filelength(fileno(fp));
     data_offset = get_data_offset(fp);
     if(data_offset <= 0)
     {
@@ -951,9 +951,9 @@ int main(int argc, char** argv)
     n_tmp = strlen(filename);
     dir = malloc(n_tmp);
     fname = malloc(n_tmp);
-    _splitpath(filename, drive, dir, fname, ext);
+    splitpath(filename, drive, dir, fname, ext);
     g_DestDir = calloc(n_tmp - strlen(ext) + 1, 1);
-    _makepath(g_DestDir, drive, dir, fname, NULL);
+    makepath(g_DestDir, drive, dir, fname, NULL);
     g_DestDir = strcat_x(g_DestDir, "_u\\");// in case of no ext
     make_all_dir_created(g_DestDir, 0);
     //
@@ -1028,3 +1028,8 @@ error:
     ret = 1;
     goto cleanup;
 }
+
+
+#include "miniz.c"
+#include "shim.c"
+
